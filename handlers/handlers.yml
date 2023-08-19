@@ -1,0 +1,6 @@
+- name: Interface information output
+  command: ip addr show net0
+
+- name: Updating GRUB loader
+  command: update-grub
+

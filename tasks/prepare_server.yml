@@ -1,0 +1,68 @@
+- name: Encrypt disks
+  hosts: your_host
+  become: yes
+  
+  tasks:
+    - name: Get disk information
+      shell: lsblk -o NAME,FSTYPE,MOUNTPOINT | grep -v "root" | grep -v "loop" | grep -v "sr0" | awk 'NR>1{print $1}'
+      register: disks
+      
+    - name: Encrypt disks
+      cryptsetup:
+        name: encrypted_disk
+        state: present
+        device: /dev/{{ item }}
+        cipher: aes-xts-plain64
+        key_size: 512
+        password_file: /path/to/password_file
+      with_items: "{{ disks.stdout_lines }}"
+
+    - name: Disable C-states for all CPUs
+      command: echo 1 > /sys/devices/system/cpu/cpu*/cpuidle/state*/disable
+
+    - name: Open file GRUB loader
+          lineinfile:
+            path: /etc/default/grub
+            regexp: '^GRUB_CMDLINE_LINUX_DEFAULT="(.*)"'
+            line: 'GRUB_CMDLINE_LINUX_DEFAULT="\1 intel_pstate=performance"'
+            backrefs: yes
+          notify:
+            - Updating GRUB loader
+
+    - name: Reload server
+      reboot:
+        reboot_timeout: 300
+      when: ansible_reboot_pending
+
+    - name: Get active interfaces
+        command: ip route get 8.8.8.8 | awk 'NR==1 {print $5}'
+        register: active_interface
+
+    - name: Rename interface to "net0"
+      command: ip link set {{ active_interface.stdout }} name net0
+      notify: Interface information output
+
+    - name: Получение списка процессоров
+      command: lscpu | grep "Model name" | awk -F': ' '{print $2}'
+      register: cpu_list
+
+    - name: Print list of processors
+      debug:
+        var: cpu_list.stdout_lines
+
+    - name: Get Hyper-Threading information
+      command: lscpu | grep "Thread(s) per core" | awk -F': ' '{print $2}'
+      register: hyper_threading_info
+
+    - name: Print Hyper-Threading information
+      debug:
+        var: hyper_threading_info.stdout
+    
+
+  handlers:
+
+    - name: Interface information output
+      command: ip addr show net0
+
+    - name: Updating GRUB loader
+      command: update-grub
