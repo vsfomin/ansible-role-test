@@ -4,12 +4,19 @@
   register: active_interface
 
 - name: Find yml file where interface is located
-  shell: grep -rw "{{ active_interface }}" /etc/netplan/ | awk -F':' '{print $1}'
+  shell: grep -rw "{{ active_interface.stdout }}" /etc/netplan/ | awk -F':' '{print $1}'
   register: found_file
 
-- name: Rename interface to "net0"
-  lineinfile:
-    path: "{{ found_file.stdout }}"
-    regexp: '^{{ active_interface }}'
-    line: 'net0'
+# - name: Rename interface to "net0"
+#   replace:
+#     path: "{{ found_file.stdout }}"
+#     regexp: '{{ active_interface.stdout }}:'
+#     replace: 'net0:'
+#   notify: Change interface
+
+- name: Заменить файл на файл из шаблона
+  template:
+    src: interface-cfg.j2
+    dest: "{{ found_file.stdout }}"
   notify: Change interface
+
