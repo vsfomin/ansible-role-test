@@ -1,0 +1,4 @@
+#!/bin/bash
+ip link set {{ active_interface.stdout }} down
+ip link set {{ active_interface.stdout }} name net0
+ip link set {{ active_interface.stdout }} up

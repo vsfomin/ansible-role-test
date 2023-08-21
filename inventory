@@ -1,0 +1,6 @@
+[servers:children]
+host1
+
+[host1]
+195.2.75.142 ansible_ssh_user=vladimir-fomin encrypt_part_var=vdb1
+

@@ -1,0 +1,6 @@
+
+- name: Server preparation
+  hosts: servers
+  become: true
+  roles:
+    - test-role
