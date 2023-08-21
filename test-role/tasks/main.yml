@@ -1,57 +1,6 @@
 ---
-- name: Get partitions information
-  shell: lsblk -n | grep "part" | awk '{print $1}' | grep -oE '[[:alnum:]]+$'
-  register: partitions
-
-- name: Get disk information
-  shell: lsblk -n | grep "disk" | awk '{print $1}' | grep -oE '[[:alnum:]]+$'
-  register: disks
-
-- name: Get the next to the root partition
-  script: find_root_part.sh
-  register: next_to_the_root_partition
-
-
-- name: Output encrypt
-  debug:
-    msg: "{{ next_to_the_root_partition.stdout }}"
-
-- name: Install cryptsetup
-  become: true
-  apt:
-    name: cryptsetup
-    state: present
-
-- name: Create password file
-  shell: dd if=/dev/urandom of=/tmp/keyfile bs=1024 count=4
-  
-- name: encrypting the second disk in the system (partition name should be specified in the inventory)
-  debug:
-    msg: "/dev/{{ encrypt_part_var }}"
-  # shell: >
-  #   umount /dev/{{ encrypt_part_var }}
-  #   cryptsetup luksFormat --cipher aes-xts-plain64 --key-size 512 --batch-mode --key-file /tmp/keyfile /dev/{{ encrypt_part_var }}
-  #   cryptsetup open /dev/{{ encrypt_part_var }} encrypted_disk_{{ encrypt_part_var }}
-  #   mkfs.ext4 /dev/mapper/encrypted_disk_{{ encrypt_part_var }}
-  #   mkdir -p /mnt/encrypted_disk_{{ encrypt_part_var }}
-  #   mount /dev/mapper/encrypted_disk_{{ encrypt_part_var }} /mnt/encrypted_disk_{{ encrypt_part_var }}
-  # args:
-  #   executable: /bin/bash
-
-- name: encrypt the partition that is present on the disk next to the root partition
-  debug:
-    msg: "/dev/{{ next_to_the_root_partition.stdout }}"
-  # shell: >
-  #   umount /dev/{{ next_to_the_root_partition.stdout }}
-  #   cryptsetup luksFormat --cipher aes-xts-plain64 --key-size 512 --batch-mode --key-file /tmp/keyfile /dev/{{ next_to_the_root_partition.stdout }}
-  #   cryptsetup open /dev/{{ next_to_the_root_partition.stdout }} encrypted_disk
-  #   mkfs.ext4 /dev/mapper/encrypted_disk
-  #   mkdir -p /mnt/encrypted_disk
-  #   mount /dev/mapper/encrypted_disk /mnt/encrypted_disk
-  # args:
-  #   executable: /bin/bash
-  
-
+- include_tasks: crypt_disk.yml
+- include_tasks: interface.yml
 
 - name: Disable C-states for all CPUs
   command: echo 1 > /sys/devices/system/cpu/cpu*/cpuidle/state*/disable
@@ -79,16 +28,6 @@
   notify:
     - Updating GRUB loader
 
-
-- name: Get active interfaces
-  shell: ip route get 8.8.8.8 | awk 'NR==1 {print $5}'
-  register: active_interface
-
-
-- name: Rename interface to "net0"
-  shell: ip link set {{ active_interface.stdout }} down; ip link set {{ active_interface.stdout }} name net0; ip link set {{ active_interface.stdout }} up
-  notify: Interface information output
-
 - name: Get processor list
   shell: lscpu | grep "Model name" | awk -F':' '{print $2}'
   register: cpu_list
@@ -97,11 +36,10 @@
   shell: lscpu | grep "Thread(s) per core" | awk -F':' '{print $2}'
   register: hyper_threading_info
 
-- name: Удаление лишних пробелов из переменной
+- name: truncate spaces
   set_fact:
     hyper_threading_info: "{{ hyper_threading_info.stdout | regex_replace('\\s', '') }}"
     cpu_list: "{{ cpu_list.stdout_lines | map('regex_replace', '\\s', '') | list }}"
-
 
 - name: Print list of processors
   debug:
@@ -110,3 +48,4 @@
 - name: Print Hyper-Threading information
   debug:
     var: hyper_threading_info
+

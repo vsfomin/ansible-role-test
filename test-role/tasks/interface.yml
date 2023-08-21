@@ -1,0 +1,15 @@
+---
+- name: Get active interfaces
+  shell: ip route get 8.8.8.8 | awk 'NR==1 {print $5}'
+  register: active_interface
+
+- name: Find yml file where interface is located
+  shell: grep -rw "{{ active_interface }}" /etc/netplan/ | awk -F':' '{print $1}'
+  register: found_file
+
+- name: Rename interface to "net0"
+  lineinfile:
+    path: "{{ found_file.stdout }}"
+    regexp: '^{{ active_interface }}'
+    line: 'net0'
+  notify: Change interface

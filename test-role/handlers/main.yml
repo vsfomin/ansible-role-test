@@ -4,3 +4,8 @@
 - name: Updating GRUB loader
   command: update-grub
 
+- name: Change interface
+  command: netplan apply
+
+- name: Save fstab
+  command: "mount -a"
