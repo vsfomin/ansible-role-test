@@ -21,6 +21,11 @@ Role consist of three task files:
 - interface.yml (task 5)
 - main.yml (tasks 3, 4)
 
+There are some another files in repo:
+
+- script/find_root_part.sh (Script finds next to the root partition on servers)
+- template/interface-cfg.j2 (Template which is copied to the server to /etc/netplan folder)
+
 ## How to use
 ```
 git clone this repo
