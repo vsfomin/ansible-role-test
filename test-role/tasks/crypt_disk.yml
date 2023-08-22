@@ -18,16 +18,22 @@
   args:
     executable: /bin/bash
 
+- name: debug
+  debug:
+    msg: "{{ encrypt_part_var }}"
+
 - name: encrypt the partition that is present on the disk next to the root partition
   shell: >
     check_if_exist=$(df -h | grep encrypted_disk_1);
     if [[  -z "$check_if_exist" ]]; then 
-      cryptsetup luksFormat --cipher aes-xts-plain64 --key-size 512 --batch-mode --key-file /root/keyfile /dev/{{ next_to_the_root_partition.stdout }} &&
-      cryptsetup open /dev/{{ next_to_the_root_partition.stdout }} --key-file /root/keyfile encrypted_disk_1 &&
+      cryptsetup luksFormat --type luks1 --batch-mode --key-file /root/keyfile /dev/{{ next_to_the_root_partition.stdout }} &&
+      cryptsetup luksAddKey /dev/{{ next_to_the_root_partition.stdout }} /root/keyfile --key-file=/root/keyfile &&
+      cryptsetup luksOpen /dev/{{ next_to_the_root_partition.stdout }} encrypted_disk_1 --key-file=/root/keyfile &&
       mkfs.ext4 /dev/mapper/encrypted_disk_1 &&
       mkdir -p /mnt/encrypted_disk_1 &&
       chmod 755 /mnt/encrypted_disk_1 &&
       mount /dev/mapper/encrypted_disk_1 /mnt/encrypted_disk_1
+    fi
   args:
     executable: /bin/bash
 
@@ -49,9 +55,10 @@
   shell: >
     check_if_exist=$(df -h | grep encrypted_disk_2);
     if [[  -z "$check_if_exist" ]]; then
-      parted /dev/{{ encrypt_part_var }}
-      mklabel gpt
-      mkpart primary ext4 0GB 100%
+      readarray -t disks <<< $(lsblk -P -o NAME,TYPE | grep disk | awk -F'"' '{print $2}');
+      second_disk=$(echo "${disks[1]}");
+      parted --script /dev/xvdf mklabel gpt &&
+      parted --script /dev/${second_disk} mkpart primary ext4 0% 100% &&
       cryptsetup luksFormat --cipher aes-xts-plain64 --key-size 512 --batch-mode --key-file /root/keyfile /dev/{{ encrypt_part_var }} &&
       cryptsetup open /dev/{{ encrypt_part_var }} --key-file /root/keyfile encrypted_disk_2 &&
       mkfs.ext4 /dev/mapper/encrypted_disk_2 &&
@@ -61,7 +68,6 @@
     fi
   args:
     executable: /bin/bash
-  register: uuid
 
 - name: Add entry 2 to crypttab
   lineinfile:

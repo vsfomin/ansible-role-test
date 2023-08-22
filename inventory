@@ -2,5 +2,5 @@
 host1
 
 [host1]
-195.2.75.142 ansible_ssh_user=ubuntu encrypt_part_var=vdb1
-#52.59.228.107 ansible_ssh_user=ubuntu encrypt_part_var=xvdf1
+#195.2.75.142 ansible_ssh_user=ubuntu encrypt_part_var=vdb1
+52.59.228.107 ansible_ssh_user=ubuntu encrypt_part_var=xvdf1

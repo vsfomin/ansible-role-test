@@ -19,5 +19,5 @@
   template:
     src: interface-cfg2.j2
     dest: "{{ found_file.stdout }}"
-  notify: Change interface
+# notify: Change interface
 
