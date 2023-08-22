@@ -8,7 +8,7 @@
   register: found_file
 
 
-- name: Заменить файл на файл из шаблона
+- name: Change /etc/netplan file
   template:
     src: interface-cfg.j2
     dest: "{{ found_file.stdout }}"
