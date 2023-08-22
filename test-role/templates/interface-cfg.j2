@@ -3,7 +3,7 @@ network:
   renderer: networkd
   ethernets:
     net0:
-      addresses: [ "{{ ansible_default_ipv4.address }}" ]
+      addresses: [ "{{ ansible_default_ipv4.address }}/24" ]
       match:
         macaddress: "{{ ansible_default_ipv4.macaddress }}"
       set-name: net0

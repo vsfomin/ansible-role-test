@@ -4,8 +4,9 @@
   register: active_interface
 
 - name: Find yml file where interface is located
-  shell: grep -rw "{{ active_interface.stdout }}" /etc/netplan/ | awk -F':' '{print $1}'
+  shell: grep -rw -m 1 "{{ active_interface.stdout }}" /etc/netplan/ | awk -F':' '{print $1}'
   register: found_file
+
 
 # - name: Rename interface to "net0"
 #   replace:
@@ -16,7 +17,7 @@
 
 - name: Заменить файл на файл из шаблона
   template:
-    src: interface-cfg.j2
+    src: interface-cfg2.j2
     dest: "{{ found_file.stdout }}"
   notify: Change interface
 

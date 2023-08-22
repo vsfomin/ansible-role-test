@@ -5,7 +5,7 @@
   command: update-grub
 
 - name: Change interface
-  command: netplan apply
+  command: netplan try
 
 - name: Save fstab
   command: "mount -a"
