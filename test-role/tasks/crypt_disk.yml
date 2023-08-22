@@ -18,10 +18,6 @@
   args:
     executable: /bin/bash
 
-- name: debug
-  debug:
-    msg: "{{ encrypt_part_var }}"
-
 - name: encrypt the partition that is present on the disk next to the root partition
   shell: >
     check_if_exist=$(df -h | grep encrypted_disk_1);
