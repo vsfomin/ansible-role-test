@@ -1,13 +1,9 @@
 network:
-  version: 2
-  renderer: networkd
-  ethernets:
-    net0:
-      addresses: [ "{{ ansible_default_ipv4.address }}/24" ]
-      match:
-        macaddress: "{{ ansible_default_ipv4.macaddress }}"
-      set-name: net0
-      gateway4: "{{ ansible_default_ipv4.gateway }}"
-      nameservers:
-          addresses:
-              - "8.8.8.8"
+    ethernets:
+        net0:
+            dhcp4: true
+            dhcp6: false
+            match:
+                macaddress: 06:df:1a:c4:5d:09
+            set-name: net0
+    version: 2
