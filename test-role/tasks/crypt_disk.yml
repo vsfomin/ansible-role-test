@@ -10,12 +10,17 @@
     state: present
 
 - name: Create password file
-  shell: dd if=/dev/urandom of=/tmp/keyfile bs=1024 count=4
+  shell: >
+    if [[ ! -e "/root/keyfile" ]]; then
+      dd if=/dev/urandom of=/root/keyfile bs=1024 count=4
+    fi
+  args:
+    executable: /bin/bash
 
 # - name: encrypt the partition that is present on the disk next to the root partition
 #   shell: >
-#     cryptsetup luksFormat --cipher aes-xts-plain64 --key-size 512 --batch-mode --key-file /tmp/keyfile /dev/{{ next_to_the_root_partition.stdout }} &&
-#     cryptsetup open /dev/{{ next_to_the_root_partition.stdout }} --key-file /tmp/keyfile encrypted_disk_1 &&
+#     cryptsetup luksFormat --cipher aes-xts-plain64 --key-size 512 --batch-mode --key-file /root/keyfile /dev/{{ next_to_the_root_partition.stdout }} &&
+#     cryptsetup open /dev/{{ next_to_the_root_partition.stdout }} --key-file /root/keyfile encrypted_disk_1 &&
 #     mkfs.ext4 /dev/mapper/encrypted_disk_1 &&
 #     mkdir -p /mnt/encrypted_disk_1 &&
 #     mount /dev/mapper/encrypted_disk_1 /mnt/encrypted_disk_1
@@ -25,7 +30,7 @@
 # - name: Add entry 1 to crypttab
 #   lineinfile:
 #     path: /etc/crypttab
-#     line: "encrypted_disk_1 /dev/{{ next_to_the_root_partition.stdout }} /tmp/keyfile luks,cipher=aes-xts-plain64,keysize=512"
+#     line: "encrypted_disk_1 /dev/{{ next_to_the_root_partition.stdout }} /root/keyfile luks,cipher=aes-xts-plain64,keysize=512"
 #     insertafter: EOF
 
 # - name: Add entry 1 to fstab
@@ -38,25 +43,33 @@
 
 - name: encrypting the second disk in the system (partition name should be specified in the inventory)
   shell: >
-    cryptsetup luksFormat --cipher aes-xts-plain64 --key-size 512 --batch-mode --key-file /tmp/keyfile /dev/{{ encrypt_part_var }} &&
-    cryptsetup open /dev/{{ encrypt_part_var }} --key-file /tmp/keyfile encrypted_disk_2 &&
-    mkfs.ext4 /dev/mapper/encrypted_disk_2 &&
-    mkdir -p /mnt/encrypted_disk_2 &&
-    mount /dev/mapper/encrypted_disk_2 /mnt/encrypted_disk_2
+    check_if_exist=$(df -h | grep encrypted_disk_2);
+    if [[  -z "$check_if_exist" ]]; then
+      echo tuysgdjhgedfjhfjh &&
+      chmod 0400 /root/keyfile &&
+      cryptsetup luksFormat --cipher aes-xts-plain64 --key-size 512 --batch-mode --key-file /root/keyfile /dev/{{ encrypt_part_var }} &&
+      cryptsetup open /dev/{{ encrypt_part_var }} --key-file /root/keyfile encrypted_disk_2 &&
+      mkfs.ext4 /dev/mapper/encrypted_disk_2 &&
+      mkdir -p /mnt/encrypted_disk_2 &&
+      chmod 755 /mnt/encrypted_disk_2 &&
+      mount /dev/mapper/encrypted_disk_2 /mnt/encrypted_disk_2
+      uuid=$(ls -l /dev/disk/by-uuid | grep encrypted_disk_2 | awk '{print $9}')
+    fi
   args:
     executable: /bin/bash
+  register: uuid
 
 - name: Add entry 2 to crypttab
   lineinfile:
     path: /etc/crypttab
-    line: "encrypted_disk_2 /dev/{{ encrypt_part_var }} /tmp/keyfile luks,cipher=aes-xts-plain64,keysize=512"
+    line: "encrypted_disk_2 UUID={{ uuid.stdout }} /root/keyfile luks"
     insertafter: EOF
   notify: Save fstab
 
 - name: Add entry 2 to fstab
   lineinfile:
     path: /etc/fstab
-    line: "/dev/mapper/encrypted_disk_2 /mnt/encrypted_disk_2 ext4 defaults 0 2"
+    line: "/dev/mapper/encrypted_disk_2 /mnt/encrypted_disk_2 auto"
     insertafter: EOF
   notify: Save fstab
 
